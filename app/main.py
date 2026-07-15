@@ -11,8 +11,10 @@ def decode_bencode(bencoded_value):
     length = len(bencoded_value)
     if chr(bencoded_value[0]).isdigit():
         decodedString = decode_String(bencoded_value)
+        return decodedString
     elif chr(bencoded_value[0]) == "i" and chr(bencoded_value[length-1]) == "e":
         decodedInteger = decode_Integer(bencoded_value)
+        return decodedInteger
 
 def decode_Integer(bencoded_value):
     actualNumber = bencoded_value[1:-1] #get actual number by cutting out the i and e
