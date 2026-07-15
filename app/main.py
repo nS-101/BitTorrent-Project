@@ -8,9 +8,10 @@ import requests
 # - decode_bencode(b"5:hello") -> b"hello"
 # - decode_bencode(b"10:hello12345") -> b"hello12345"
 def decode_bencode(bencoded_value):
+    length = len(bencoded_value)
     if chr(bencoded_value[0]).isdigit():
         decodedString = decode_String(bencoded_value)
-    elif chr(bencoded_value[0]) == 105: #105 = i for integer
+    elif chr(bencoded_value[0]) == "i" and chr(bencoded_value[length-1]) == "e":
         decodedInteger = decode_Integer(bencoded_value)
 
 def decode_Integer(bencoded_value):
