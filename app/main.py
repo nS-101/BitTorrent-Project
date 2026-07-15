@@ -15,12 +15,14 @@ def decode_bencode(bencoded_value):
         decodedInteger = decode_Integer(bencoded_value)
 
 def decode_Integer(bencoded_value):
-    first_colon_index = bencoded_value.find(b":")
-    if first_colon_index == -1:
-        raise ValueError("Invalid encoded value")
-        return bencoded_value[first_colon_index+1:]
-    else:
-        raise NotImplementedError("Only strings/integers are supported at the moment")
+    actualNumber = bencoded_value[1:-1] #get actual number by cutting out the i and e
+    try:
+        actualNumber = int(actualNumber.decode()) #convert to int() since .decode would return string 76 otherwise
+        return actualNumber
+    except ValueError:
+        raise ValueError("invalid format for numbers")
+
+
 
 def decode_String(bencoded_value):
     first_colon_index = bencoded_value.find(b":")
