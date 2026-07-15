@@ -24,15 +24,12 @@ def decode_Integer(bencoded_value):
     except ValueError:
         raise ValueError("invalid format for numbers")
 
-
-
 def decode_String(bencoded_value):
     first_colon_index = bencoded_value.find(b":")
     if first_colon_index == -1:
         raise ValueError("Invalid encoded value")
-        return bencoded_value[first_colon_index+1:]
-    else:
-        raise NotImplementedError("Only strings/integers are supported at the moment")
+    word = bencoded_value[first_colon_index:].decode()
+    return word
 
 def main():
     command = sys.argv[1]
