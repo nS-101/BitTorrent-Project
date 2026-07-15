@@ -28,7 +28,7 @@ def decode_String(bencoded_value):
     first_colon_index = bencoded_value.find(b":")
     if first_colon_index == -1:
         raise ValueError("Invalid encoded value")
-    word = bencoded_value[first_colon_index:].decode()
+    word = bencoded_value[first_colon_index+1:].decode()
     return word
 
 def main():
