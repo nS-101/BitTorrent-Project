@@ -1,8 +1,7 @@
 import json
 import sys
-
-# import bencodepy - available if you need it!
-# import requests - available if you need it!
+import bencodepy 
+import requests 
 
 # Examples:
 #
@@ -10,13 +9,25 @@ import sys
 # - decode_bencode(b"10:hello12345") -> b"hello12345"
 def decode_bencode(bencoded_value):
     if chr(bencoded_value[0]).isdigit():
-        first_colon_index = bencoded_value.find(b":")
-        if first_colon_index == -1:
-            raise ValueError("Invalid encoded value")
+        decodedString = decode_String(bencoded_value)
+    elif chr(bencoded_value[0]) == 105: #105 = i for integer
+        decodedInteger = decode_Integer(bencoded_value)
+
+def decode_Integer(bencoded_value):
+    first_colon_index = bencoded_value.find(b":")
+    if first_colon_index == -1:
+        raise ValueError("Invalid encoded value")
         return bencoded_value[first_colon_index+1:]
     else:
-        raise NotImplementedError("Only strings are supported at the moment")
+        raise NotImplementedError("Only strings/integers are supported at the moment")
 
+def decode_String(bencoded_value):
+    first_colon_index = bencoded_value.find(b":")
+    if first_colon_index == -1:
+        raise ValueError("Invalid encoded value")
+        return bencoded_value[first_colon_index+1:]
+    else:
+        raise NotImplementedError("Only strings/integers are supported at the moment")
 
 def main():
     command = sys.argv[1]
