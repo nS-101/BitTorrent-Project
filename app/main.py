@@ -23,6 +23,9 @@ def decode_recursive(bencoded_value):
     elif chr(bencoded_value[0]) == "l": #list
         decodedList = decode_List(bencoded_value)
         return decodedList
+    elif chr(bencoded_value[0]) == "d": #dictionary
+        decodedDictionary = decode_Dictionary(bencoded_value)
+        return decodedDictionary
 
 def decode_Integer(bencoded_value):
     endIndex = bencoded_value.find(b"e")
@@ -52,7 +55,20 @@ def decode_List(bencoded_value):
         result.append(value)
         index += numberOfIndex
     return result, index+1 #include the "e" in the total amount
-    
+
+def decode_Dictionary(bencoded_value):
+    result = [] #start as array, will convert to dictionary once all keys/values are added
+    colonIndex = bencoded_value.find(b":") #get index of colon
+    number = bencoded_value[1:colonIndex].decode() 
+    index = 1 #start after the "d"
+    while bencoded_value[index:index+1] != b"e":
+        value, numberOfIndex = decode_recursive(bencoded_value[index:])
+        index += numberOfIndex
+        result.append(value)
+    #all keys/values added at this point
+    newDict = dict(zip(result[0::2], result[1::2])) #keys start at index 0 and every 2nd value is a key, values start at index 1 and every second value is a value corresponding to a key
+    return newDict, index+1
+
 
 def main():
     command = sys.argv[1]
