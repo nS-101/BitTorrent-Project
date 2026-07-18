@@ -8,6 +8,27 @@ import requests
 # - decode_bencode(b"5:hello") -> b"hello"
 # - decode_bencode(b"10:hello12345") -> b"hello12345"
 
+def decode_BytesKeys(data): #need this method to separate between info and decode command in main since json can't process bytes and there will be an error if we use decode on a list/dict with bytes so we create a copy that has no bytes using this method
+    if isinstance(data, dict): #handle dictionaries
+        new_dict = {}
+        for key, value in data.items():
+            if isinstance(key, bytes): #convert key to string if it's in bytes form
+                new_key = key.decode()
+            else:
+                new_key = key
+            new_dict[new_key] = decode_BytesKeys(value) #recursively translate from bytes to str for entire dict
+        return new_dict
+    elif isinstance(data, list): #handle lists
+        new_list = []
+        for item in data:
+            processed_item = decode_BytesKeys(item) #again, recursively translate from bytes to str for entire list
+            new_list.append(processed_item)
+        return new_list
+    elif isinstance(data, bytes): #handle bytes
+        return data.decode()
+    else:
+        return data
+
 def decode_bencode(bencoded_value): #need to split between decode_bencode and decode_recursive since we're returning a tuple to keep track of a index for the list decoding, and we want one method to return the actual value
     value, _ = decode_recursive(bencoded_value)
     return value
@@ -43,7 +64,7 @@ def decode_String(bencoded_value):
     end = start + lengthOfString
     if first_colon_index == -1:
         raise ValueError("Invalid encoded value")
-    word = bencoded_value[start:end].decode()
+    word = bencoded_value[start:end]
     return word, end #return the actual value as well as the index where the decoding ends
 
 def decode_List(bencoded_value):
@@ -69,7 +90,12 @@ def decode_Dictionary(bencoded_value):
     newDict = dict(zip(result[0::2], result[1::2])) #keys start at index 0 and every 2nd value is a key, values start at index 1 and every second value is a value corresponding to a key
     return newDict, index+1
 
-
+def torrentReader(torrentFile):
+    with open(torrentFile, "rb") as file:
+        fileContents = file.read()
+        torrentData = decode_bencode(fileContents)
+        return torrentData
+    
 def main():
     command = sys.argv[1]
 
@@ -79,20 +105,21 @@ def main():
     if command == "decode":
         bencoded_value = sys.argv[2].encode()
 
-        # json.dumps() can't handle bytes, but bencoded "strings" need to be
-        # bytestrings since they might contain non utf-8 characters.
-        #
-        # Let's convert them to strings for printing to the console.
-        def bytes_to_str(data):
-            if isinstance(data, bytes):
-                return data.decode()
-
-            raise TypeError(f"Type not serializable: {type(data)}")
-
-        
-        print(json.dumps(decode_bencode(bencoded_value), default=bytes_to_str))
+        rawData = decode_bencode(bencoded_value)
+        formattedData = decode_BytesKeys(rawData)
+        print(json.dumps(formattedData))
+    
+    elif command == "info": 
+        torrentFile = sys.argv[2]
+        torrentData = torrentReader(torrentFile)
+        print(f"DEBUG: Parsed data: {torrentData}", file=sys.stderr)
+        tracker = torrentData[b"announce"].decode()
+        length = torrentData[b"info"][b"length"] #it's a nested dictionary to begin with, so we need two keys to get the length
+        print(f"Tracker URL: {tracker}")
+        print(f"Length: {length }")
     else:
         raise NotImplementedError(f"Unknown command {command}")
+
 
 
 if __name__ == "__main__":
