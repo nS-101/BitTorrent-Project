@@ -2,7 +2,7 @@ import json
 import sys
 import bencodepy 
 import requests 
-
+import hashlib
 # Examples:
 #
 # - decode_bencode(b"5:hello") -> b"hello"
@@ -115,8 +115,12 @@ def main():
         print(f"DEBUG: Parsed data: {torrentData}", file=sys.stderr)
         tracker = torrentData[b"announce"].decode()
         length = torrentData[b"info"][b"length"] #it's a nested dictionary to begin with, so we need two keys to get the length
+        infoDictionary = torrentData[b"info"] #get info dictionary
+        infoDictionary = bencodepy.encode(infoDictionary) #make sure the info dictionary is bencoded
+        infoHash = hashlib.sha1(infoDictionary).hexdigest() #convert infoDictionary into sha1 hash 
         print(f"Tracker URL: {tracker}")
         print(f"Length: {length }")
+        print(f"Info Hash: {infoHash}")
     else:
         raise NotImplementedError(f"Unknown command {command}")
 
