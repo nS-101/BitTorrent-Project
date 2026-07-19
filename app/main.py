@@ -112,15 +112,25 @@ def main():
     elif command == "info": 
         torrentFile = sys.argv[2]
         torrentData = torrentReader(torrentFile)
-        print(f"DEBUG: Parsed data: {torrentData}", file=sys.stderr)
         tracker = torrentData[b"announce"].decode()
         length = torrentData[b"info"][b"length"] #it's a nested dictionary to begin with, so we need two keys to get the length
         infoDictionary = torrentData[b"info"] #get info dictionary
         infoDictionary = bencodepy.encode(infoDictionary) #make sure the info dictionary is bencoded
         infoHash = hashlib.sha1(infoDictionary).hexdigest() #convert infoDictionary into sha1 hash 
+        pieceLength = torrentData[b"info"][b"piece length"] 
+        allHashes = torrentData[b"info"][b"pieces"] #a continuous string of hashes that needs to be split up in order to get the hashes for individual pieces
+        arrayOfIndividualHashes = []
+        for i in range(0, len(allHashes), 20):
+            arrayOfIndividualHashes.append(allHashes[i: i+20].hex())#append to array the individual hash
+        
+        
+        
         print(f"Tracker URL: {tracker}")
         print(f"Length: {length }")
         print(f"Info Hash: {infoHash}")
+        print(f"Piece Length: {pieceLength}")
+        print("Piece Hashes: ")
+        print(*(hash for hash in arrayOfIndividualHashes), sep="\n") #print each individual hash on a new line
     else:
         raise NotImplementedError(f"Unknown command {command}")
 
