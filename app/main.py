@@ -133,7 +133,7 @@ def main():
         print(*(hash for hash in arrayOfIndividualHashes), sep="\n") #print each individual hash on a new line we'll send data to
 
     
-    elif command == "peers":
+    elif command == "peers": #command to get the ip addresses and port numbers for the different peers we can connect to
         torrentFile = sys.argv[2]
         torrentData = torrentReader(torrentFile)
         tracker = torrentData[b"announce"].decode() #the tracker URL with the ip addresses
@@ -159,7 +159,19 @@ def main():
 
         response = requests.get(tracker, params=parameters) #response is what is returned by sending these specific parameters
         trackerData = decode_bencode(response.content)
-        
+        peers = trackerData[b"peers"] #string of bytes encoded ip addresses and ports for each peer we can connect to
+        for i in range(0, len(peers),6):
+            data = peers[i:i+6] #each element is separated per six bytes
+            ipData = data[:4] #first four bytes are the ip address
+            ipAddress = ".".join(str(element) for element in ipData) #create the ip address string by converting from bytes to string
+
+            portData = data[4:6] #last two bytes are the port bytes
+            port = int.from_bytes(portData, byteorder="big") #convert to int from bytes to form port number
+
+            print(f"{ipAddress}:{port}")
+            
+
+
 
     else:
         raise NotImplementedError(f"Unknown command {command}")
