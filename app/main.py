@@ -4,7 +4,7 @@ import bencodepy
 import requests 
 import hashlib
 import urllib.parse
-
+import socket
 # Examples:
 #
 # - decode_bencode(b"5:hello") -> b"hello"
@@ -169,9 +169,37 @@ def main():
             port = int.from_bytes(portData, byteorder="big") #convert to int from bytes to form port number
 
             print(f"{ipAddress}:{port}")
-            
+    
+    elif command == "handshake":
+        torrentFile = sys.argv[2]
+        torrentData = torrentReader(torrentFile)
+        tracker = torrentData[b"announce"].decode() #the tracker URL with the ip addresses
+        length = torrentData[b"info"][b"length"] #it's a nested dictionary to begin with, so we need two keys to get the length
+        infoDictionary = torrentData[b"info"] #get info dictionary
+        infoDictionary = bencodepy.encode(infoDictionary) #make sure the info dictionary is bencoded
+        infoHash = hashlib.sha1(infoDictionary).digest() #convert infoDictionary into sha1 hash(not hex, just bytes)
+        urlEncodedInfoHash = urllib.parse.quote_from_bytes(infoHash) #convert inot url encoded format so urls can accept it(they dont accept just bytes)
+        pieceLength = torrentData[b"info"][b"piece length"] 
+        allHashes = torrentData[b"info"][b"pieces"] #a continuous string of hashes that needs to be split up in order to get the hashes for individual pieces
+        arrayOfIndividualHashes = []
 
 
+        peerData = sys.argv[3] #has peerIP and peer port
+        peerIP, peerPort = peerData.split(":", 1) #split into two different variables
+        protocolStringLength = 19
+        protocolStringLength = protocolStringLength.to_bytes(1, byteorder="big") #convert 19 to bytes object
+        protocolString = b"BitTorrent protocol"
+        reservedBytes = b"\x00" * 8 #create 8 empty bytes
+        #infoHash
+        peerID = b"\x10" * 20 #20 random bytes to send as ID
+        continousBytes = b"".join([protocolStringLength, protocolString, reservedBytes, infoHash, peerID]) #string of bytes we send to peer
+        
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as clientSocket: #open tcp connection
+            clientSocket.connect((peerIP, int(peerPort)))
+            clientSocket.sendall(continousBytes) #send bytes
+            responseFromClient = clientSocket.recv(68)
+            printedHexResponse = responseFromClient[48:].hex() #take last 20 bytes since that's the peer ID, everything else is just the data I sent
+        print(f"Peer ID: {printedHexResponse}")
 
     else:
         raise NotImplementedError(f"Unknown command {command}")
