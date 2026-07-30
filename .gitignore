@@ -172,3 +172,13 @@ cython_debug/
 
 # PyPI configuration file
 .pypirc
+
+# VS Code
+.vscode/
+
+# macOS
+.DS_Store
+
+# Downloaded torrent output — test artifacts, not source code
+/out/
+*.downloaded
