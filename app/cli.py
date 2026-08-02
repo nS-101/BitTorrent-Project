@@ -1,9 +1,20 @@
 import argparse
 import sys
+import json
+from bencode import decodeBencode, decodeBytesKeys
 from torrent import Torrent
 from tracker import getPeers 
 from peer import handshake, waitForUnchoke, downloadPiece 
-#imported required methods, class, packages
+#imported required methods, class, packages, files
+
+def commandDecode(args):
+    """Decode a raw bencoded value from the cli and print it as json"""
+    bencodedVal = args.bencodedValue
+    decodedValue = decodeBencode(bencodedVal.encode()) #convert to bytes before passing to decodeBencode since it accepts bytes but args isn't bytes
+    decodedValue = decodeBytesKeys(decodedValue) #need to pass to decodeBytesKeys since json can't handle raw bytes, and this method already took care of that since this probleme existed before the code refactoring
+    print(json.dumps(decodedValue))
+    
+
 
 def commandInfo(args):
     """Print's the torrent file's data: trackerURL, length, info hash, piece hashes"""
@@ -75,6 +86,11 @@ def main():
     downloadParser.add_argument("torrentFile") #the .torrent file is the argument for the download command, first argument after the download command is stored as torrentFile
     downloadParser.add_argument("-o", "--output", required=True) #store file path for where to store data as output, is required
     downloadParser.set_defaults(func=commandDownload) #use commandDownload method when download command is used
+
+    decodeParser = subparsers.add_parser("decode") #add decode command
+    decodeParser.add_argument("bencodedValue") #the bencoded value we have to convert to json
+    decodeParser.set_defaults(func=commandDecode) #use commandDecode method when decode command is used
+
 
     args = parser.parse_args() #package arguments the user types in the terminal into args object
     args.func(args) #call specific method on the arguments(what func is for)
