@@ -182,3 +182,5 @@ cython_debug/
 # Downloaded torrent output — test artifacts, not source code
 /out/
 *.downloaded
+
+*.bin
