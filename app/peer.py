@@ -90,8 +90,6 @@ def downloadPiece(sock: socket.socket, torrent, pieceIndex: int) -> bytes:
 
     hashOfData = hashlib.sha1(arrayOfBytes).digest()
     expectedHash = torrent.pieceHashes[pieceIndex] #get the expected hash for the piece
-    print(f"Calculated Hash: {hashOfData.hex()}", file=sys.stderr)
-    print(f"Expected Hash: {expectedHash.hex()}",file=sys.stderr)
     if (hashOfData == expectedHash): #final check where we compare our data's hash to the piece's hash that we were already given
         return arrayOfBytes
     else:

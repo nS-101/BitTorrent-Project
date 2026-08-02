@@ -35,6 +35,23 @@ def commandDownloadPiece(args):
     with open(args.output, "wb") as file:
         file.write(pieceData) #write piece to disk
     
+def commandDownload(args):
+    """Download an entire .torrent file by downloading every piece"""
+    torrent = Torrent.fromFile(args.torrentFile) #read file and get info using fromFile method
+    peers = getPeers(torrent) #get list of peers
+    sock, peerID = handshake(torrent, peers[0][0], peers[0][1]) #pass arguments for peer handshake and get back the socket and peerClientID
+    waitForUnchoke(sock) #wait for unchoke message to continue
+    numOfPieces = len(torrent.pieceHashes) #length of pieceHashes is how many pieces there are since pieceHashes has the hash for every piece
+    totalFile = bytearray() #create bytearray to hold entire file once all pieces are collected
+
+    for currentPieceIndex in range(numOfPieces):
+        currentPieceData = downloadPiece(sock, torrent, currentPieceIndex) #send request for piece data
+        totalFile.extend(currentPieceData)
+    #all pieces collected in totalfile at this point
+
+    with open(args.output, "wb") as file:
+        file.write(totalFile) #write entire file
+
 
 def main():
     parser = argparse.ArgumentParser(description="A BitTorrent client") #create parser object
@@ -53,6 +70,11 @@ def main():
     downloadPieceParser.add_argument("pieceIndex", type=int) #download_piece also requires an int representing the piece index, second argument after the download_piece command is stored as pieceIndex
     downloadPieceParser.add_argument("-o", "--output", required=True) #other arguments needed for download_piece method
     downloadPieceParser.set_defaults(func=commandDownloadPiece) #use commandDownloadPiece method when download_piece command is used
+
+    downloadParser = subparsers.add_parser("download") #add download command
+    downloadParser.add_argument("torrentFile") #the .torrent file is the argument for the download command, first argument after the download command is stored as torrentFile
+    downloadParser.add_argument("-o", "--output", required=True) #store file path for where to store data as output, is required
+    downloadParser.set_defaults(func=commandDownload) #use commandDownload method when download command is used
 
     args = parser.parse_args() #package arguments the user types in the terminal into args object
     args.func(args) #call specific method on the arguments(what func is for)
