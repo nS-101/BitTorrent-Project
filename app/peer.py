@@ -38,7 +38,7 @@ def waitForUnchoke(sock: socket.socket) -> None:
         #bitfield message received
     except socket.timeout:
         pass
-    sock.settimeout(None) #reset
+    sock.settimeout(4) #wait for choke/unchoke message but only 4 seconds(longer than establishing connection)
     #using try/except here for handling in case peer doesn't send bitfield first
 
     interestedMessage = struct.pack(">IB", 1, 2) #4byte integer for the prefix representing length 1 and a 1byte integer that represents id 2
@@ -51,6 +51,9 @@ def waitForUnchoke(sock: socket.socket) -> None:
     if unchokeMessage[0] == 1: #id for unchoke message is 1, we can use the zero index since because we already read the prefix, it doesn't get read again in this second recv call
         unchokeMessagePayload = unchokeMessage[1:] #payload is everything after id byte
     #received and read the unchoke message
+    else:
+        raise ConnectionRefusedError("choke message received, can't use connection")
+    sock.settimeout(None) #reset timeout to none after choke/unchoke received
 
 def downloadPiece(sock: socket.socket, torrent, pieceIndex: int) -> bytes:
     """Request every block of a piece from an already unchoked peer, 
@@ -94,4 +97,21 @@ def downloadPiece(sock: socket.socket, torrent, pieceIndex: int) -> bytes:
         return arrayOfBytes
     else:
         raise ValueError(f"Hash mismatch, hashes do not match")
+
+def connectToPeer(torrent, peers: list[tuple[str, int]]) -> tuple[socket.socket, bytes]:
+    """Try each peer from the trackerURL in order until one successfully handshakes and
+    unchokes. This method returns the connected and ready to use socket and that 
+    peer's ID with a runtime error raised if every peer in the list fails. This 
+    method aims to add a safety layer in case the first peer we check doesn't cooperate
+    or something goes wrong, which is a feature we didn't have before this"""
+    for peerIP, peerPort in peers:
+        try:
+            sock, peerID = handshake(torrent, peerIP, peerPort) #pass arguments for peer handshake and get back the socket and peerClientID
+            waitForUnchoke(sock) #get unchoke message if possible
+            return (sock, peerID) #return tuple of socket and peerID of successful peer connection
+        except(socket.timeout, ConnectionRefusedError, OSError) as e:
+            print(f"error: {e} | trying next peer...")
+            continue #if something goes wrong, try next tuple in peers
+    raise RuntimeError("Couldn't connect to any peer") #if execution reaches this point it means no peer connection was successful
+
    

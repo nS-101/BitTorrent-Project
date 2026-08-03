@@ -4,7 +4,7 @@ import json
 from bencode import decodeBencode, decodeBytesKeys
 from torrent import Torrent
 from tracker import getPeers 
-from peer import handshake, waitForUnchoke, downloadPiece 
+from peer import downloadPiece, connectToPeer
 #imported required methods, class, packages, files
 
 def commandDecode(args):
@@ -40,8 +40,11 @@ def commandDownloadPiece(args):
     """Download a single piece from a .torrent file and save it to disk"""
     torrent = Torrent.fromFile(args.torrentFile) #read file and get info using fromFile method
     peers = getPeers(torrent) #get list of peers
-    sock, peerID = handshake(torrent, peers[0][0], peers[0][1]) #pass arguments for peer handshake and get back the socket and peerClientID
-    waitForUnchoke(sock) #wait for unchoke message to continue
+    try:
+        sock, peerID = connectToPeer(torrent, peers) #connectToPeer incorporates both the handshake and the unchoke protocols
+    except RuntimeError:
+        print(f"Runtime error ocurred, no peers successfully connected to while trying to download a piece")
+        sys.exit(1) #gracefuly exit cli with clean error message instead of raised error
     pieceData = downloadPiece(sock, torrent, args.pieceIndex) 
     with open(args.output, "wb") as file:
         file.write(pieceData) #write piece to disk
@@ -50,11 +53,14 @@ def commandDownload(args):
     """Download an entire .torrent file by downloading every piece"""
     torrent = Torrent.fromFile(args.torrentFile) #read file and get info using fromFile method
     peers = getPeers(torrent) #get list of peers
-    sock, peerID = handshake(torrent, peers[0][0], peers[0][1]) #pass arguments for peer handshake and get back the socket and peerClientID
-    waitForUnchoke(sock) #wait for unchoke message to continue
+    
     numOfPieces = len(torrent.pieceHashes) #length of pieceHashes is how many pieces there are since pieceHashes has the hash for every piece
     totalFile = bytearray() #create bytearray to hold entire file once all pieces are collected
-
+    try:
+        sock, peerID = connectToPeer(torrent, peers) #connectToPeer incorporates both the handshake and the unchoke protocols
+    except RuntimeError:
+        print(f"RunTime error ocurred, no peers successfully connected to while trying to download a file")
+        sys.exit(1) #gracefully exit cli with clean error message instead of raised error
     for currentPieceIndex in range(numOfPieces):
         currentPieceData = downloadPiece(sock, torrent, currentPieceIndex) #send request for piece data
         totalFile.extend(currentPieceData)
