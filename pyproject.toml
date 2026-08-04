@@ -6,3 +6,6 @@ dependencies = [
     "bencode-py>=4.0.0",
     "requests>=2.32.5",
 ]
+[tool.pytest.ini_options]
+pythonpath = ["app"] #adds app/ in front of actual files to prevent file not found when running pytest
+
