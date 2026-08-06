@@ -39,7 +39,9 @@ def waitForUnchoke(sock: socket.socket) -> None:
     except socket.timeout:
         pass
     sock.settimeout(4) #wait for choke/unchoke message but only 4 seconds(longer than establishing connection)
-    #using try/except here for handling in case peer doesn't send bitfield first
+    #using try/except here for handling in case peer doesn't send bitfield first. try/except is fine for bitfield since it's optional, but not getting a 
+    #response while waiting for choke/unchoke below is not acceptable, which is why we settimeout for 4 seconds here meaning if it goes on longer after we send a recv and
+    #get nothing, the peer is unresponsive and we complain with a timeout issue which is the appropriate behavior. the 4 second limit is per recv call
 
     interestedMessage = struct.pack(">IB", 1, 2) #4byte integer for the prefix representing length 1 and a 1byte integer that represents id 2
     sock.sendall(interestedMessage) 
