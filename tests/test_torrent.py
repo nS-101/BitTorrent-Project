@@ -1,6 +1,9 @@
 import pytest #needed for @pytest.fixture
 from torrent import Torrent
 from pathlib import Path
+import bencode
+
+
 
 SAMPLE_TORRENT = Path(__file__).parent / "sample.torrent" #create path for sample file
 @pytest.fixture
@@ -9,10 +12,27 @@ def torrent():
     repetitively created per test"""
     torrent = Torrent.fromFile(str(SAMPLE_TORRENT)) #copy of sample.torrent in tests folder
     return torrent
-
 #the parameters for the test methods will be called torrent, to match up
 #with the name of the torrent method, making them use the same object so
 #we don't have to keep instantiating a torrent object per method
+
+
+def test_length_with_multi_file_torrent():
+    """Multifile torrents have info[b"files"] instead of info[b"length"],
+    length should still return the total amount across every file
+    """
+    multiFileInfo = {
+        b"name": b"some-folder",
+        b"piece length": 32768,
+        b"pieces": b"x" * 20,
+        b"files": [
+            {b"length": 1000, b"path": [b"file1.txt"]},
+            {b"length": 2000, b"path": [b"file2.txt"]},
+        ],
+    }
+    t = Torrent(b"https://fake-tracker.example.com/announce", multiFileInfo) 
+    assert t.length == 3000 #total amount is 3000 from adding the two files in this torrent
+    #above assertion should fail until we have multifile support
 
 
 #assert that certain methods work for known attributes of sample.torrent
