@@ -24,16 +24,22 @@ class Torrent:
 
     @property
     def length(self) -> int:
-        """get total file length in bytes form"""
-        length = self.infoDict[b"length"] #self.infoDict already represents the outer key of ["info"] so we just access the length from there
-        return length
-    
+        """get total file length in bytes form, for both single file torrents and multifile"""
+        if b"length" in self.infoDict: #single file
+            return self.infoDict[b"length"]
+        else: #multifile 
+            files = self.infoDict[b"files"] #files is a list containing multiple dicts of files and their lengths and paths
+            totalLength = 0
+            for dictionary in files:
+                totalLength += dictionary[b"length"] #keep adding each file length to total
+            return totalLength
+
     @property
     def pieceLength(self) -> int:
         """get the standard piece length for the pieces in the .torrent file"""
         pieceLength = self.infoDict[b"piece length"] #self.infoDict already represents the outer key of ["info"] so we just access the piece length from there
         return pieceLength
-    
+
     @property
     def pieceHashes(self) -> list[bytes]: 
         """get a list of hashes representing the hash of each piece in the .torrent file"""
