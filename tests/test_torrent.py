@@ -52,3 +52,25 @@ def test_announce(torrent):
 
 def test_info_hash(torrent):
     assert torrent.infoHash.hex() == "d69f91e6b2ae4c542468d1073a71d4ea13879a7f"
+
+def test_files_property_for_multifile_torrent():
+    multiFileInfo = {
+        b"name": b"some-folder",
+        b"piece length": 32768,
+        b"pieces": b"x" * 20,
+        b"files": [
+            {b"length": 1000, b"path": [b"file1.txt"]},
+            {b"length": 2000, b"path": [b"file2.txt"]},
+        ],
+    } #sample infoDict
+    t = Torrent(b"http://fake-tracker.example.com/announce", multiFileInfo)
+    assert t.files == multiFileInfo[b"files"]
+
+def test_files_property_for_single_file_torrent(): #should be none since single files torrents don't have b"files"
+    t = Torrent(b"http://fake-tracker.example.com/announce", {
+        b"name": b"movie.mp4",
+        b"length": 5000,
+        b"piece length": 32768,
+        b"pieces": b"x" * 20,
+    })
+    assert t.files is None

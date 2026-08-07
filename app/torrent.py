@@ -23,6 +23,17 @@ class Torrent:
         self.infoHash = infoHash
 
     @property
+    def files(self):
+        """List of files for multifile torrents(each has a dict with
+        b"length" and b"path"), or no list if the torrent is single file"""
+        filesList = None
+        if b"length" in self.infoDict: #check if single file
+            filesList = None
+        else: #torrent is multifile
+            filesList = self.infoDict.get(b"files") #get list of dicts of files, if there are none, then get() returns None type
+        return filesList
+
+    @property
     def length(self) -> int:
         """get total file length in bytes form, for both single file torrents and multifile"""
         if b"length" in self.infoDict: #single file
