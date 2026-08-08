@@ -1,6 +1,7 @@
 import argparse
 import sys
 import json
+import os
 from bencode import decodeBencode, decodeBytesKeys
 from torrent import Torrent
 from tracker import getPeers 
@@ -36,6 +37,36 @@ def commandPeers(args):
     for data in listOfPeers:
         print(data) #print each tuple containing IP address and port number of each peer
 
+
+def writeDownloadedFiles(torrent, totalFile:bytes, outputPath:str) -> None: #outputPath is either a folder(multifile torrent) or an actual file(single file torrent)
+    """Write the downloaded bytes to disk. Single file torrents write one file 
+    directly to outputPath while multifile torrents split totalFile into separate
+    files all of which are nested under the outputPath toplevel folder and then
+    the torrentName intermediate folder. for multifile torrents,
+    this method takes the full stream of already downloaded bytes and splits them up
+    to create the folder-file hierarchy and conserve the paths for each file"""
+    if torrent.files is None: #single file torrent
+        with open(outputPath, "wb") as file:
+            file.write(totalFile) #write entire file
+    else: #multifile torrent
+        offset = 0 #offset for slicing totalFile(variable that contains all bytes for the torrent) into different files, crossreferencing with file lengths
+        for fileInfo in torrent.files: #.files is the list of multiple dicts with file lengths and paths
+            torrentName = torrent.infoDict[b"name"].decode() #in a single file torrent, the name represents the name of the file, in a multifile torrent, the name represents the folder with all the metadata meaning the files and their data/contents
+            fileLength = fileInfo[b"length"] #obtain length for that file in the dict
+            pathSegments= fileInfo[b"path"] #data for file path in bytes form
+            pathParts = [part.decode("utf-8") for part in pathSegments] #convert data to string to create file path
+            filePath = os.path.join(outputPath, torrentName, *pathParts) #create actual file path using all arguments, with outputPath representing a toplevel folder, and torrentName representing an intermediate folder, *pathparts is the actual file
+            os.makedirs(os.path.dirname(filePath), exist_ok=True) #create path to write file to
+
+            actualFile = totalFile[offset: offset+fileLength] #get actual file
+
+            with open(filePath, "wb") as file:
+                file.write(actualFile) #write file to correct location we just created using filePath
+
+            offset += fileLength #move offset up       
+
+
+
 def commandDownloadPiece(args):
     """Download a single piece from a .torrent file and save it to disk"""
     torrent = Torrent.fromFile(args.torrentFile) #read file and get info using fromFile method
@@ -66,8 +97,7 @@ def commandDownload(args):
         totalFile.extend(currentPieceData)
     #all pieces collected in totalfile at this point
 
-    with open(args.output, "wb") as file:
-        file.write(totalFile) #write entire file
+    writeDownloadedFiles(torrent, bytes(totalFile), args.output)
 
 
 def main():
